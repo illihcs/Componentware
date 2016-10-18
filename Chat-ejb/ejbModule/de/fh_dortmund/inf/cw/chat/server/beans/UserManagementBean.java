@@ -43,22 +43,26 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 		tmpUser.setUserName("Jan");
 		tmpUser.setPasswordHash(generateHash("jan"));
 		users.add(tmpUser);
-		System.out.println(tmpUser.getUserName());
-		System.out.println(tmpUser.getPasswordHash());
 		
 		User tmpUser2 =new User();
 		tmpUser2.setUserName("Stefan");
 		tmpUser2.setPasswordHash(generateHash("stefan"));
-		users.add(tmpUser);
-		System.out.println(tmpUser2.getUserName());
-		System.out.println(tmpUser2.getPasswordHash());
+		users.add(tmpUser2);
 		
 		User tmpUser3 = new User();
 		tmpUser3.setUserName("Marvin");
 		tmpUser3.setPasswordHash(generateHash("marvin"));
 		users.add(tmpUser3);
-		System.out.println(tmpUser3.getUserName());
-		System.out.println(tmpUser3.getPasswordHash());
+		
+		User tmpUser4 = new User();
+		tmpUser4.setUserName("Bla");
+		tmpUser4.setPasswordHash(generateHash("bla"));
+		users.add(tmpUser4);
+		
+		User tmpUser5 = new User();
+		tmpUser5.setUserName("S");
+		tmpUser5.setPasswordHash(generateHash("s"));
+		users.add(tmpUser5);
 	}
 
 	@Lock(LockType.READ)

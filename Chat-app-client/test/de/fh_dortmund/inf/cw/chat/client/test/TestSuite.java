@@ -4,10 +4,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import de.fh_dortmund.inf.cw.chat.client.shared.UserSessionHandler;
+
 
 @RunWith(Suite.class)
-@SuiteClasses({UserSessionHandlerTest.class})
+@SuiteClasses({UserSessionHandlerTest.class, UserManagementTest.class})
 public class TestSuite {
 
 }
