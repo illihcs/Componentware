@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -15,11 +16,18 @@ import javax.ejb.Lock;
 import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import javax.inject.Inject;
+import javax.jms.JMSContext;
+import javax.jms.JMSException;
+import javax.jms.ObjectMessage;
+import javax.jms.Topic;
 
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementLocal;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote;
 import de.fh_dortmund.inf.cw.chat.server.entities.User;
 import de.fh_dortmund.inf.cw.chat.server.exceptions.LoginException;
+import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessage;
+import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessageType;
 
 @Singleton
 @Startup
@@ -30,6 +38,15 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 	private String hashverfahren;
 	// end hashverfahren
 
+	
+	//JMS Zeugs
+	@Inject
+	private JMSContext jmsContext;
+
+	@Resource(lookup = "java:global/jms/ObserverTopic")
+	private Topic chatMessageTopic;
+	
+	
 	private ArrayList<User> users;
 	
 	private ArrayList<User> onlineUserList;
@@ -60,7 +77,7 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 		users.add(tmpUser4);
 		
 		User tmpUser5 = new User();
-		tmpUser5.setUserName("S");
+		tmpUser5.setUserName("s");
 		tmpUser5.setPasswordHash(generateHash("s"));
 		users.add(tmpUser5);
 	}
@@ -90,7 +107,7 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 
 	@Lock(LockType.WRITE)
 	@Override
-	public void register(String userName, String password) {
+	public void register(String userName, String password) throws IllegalArgumentException {
 		if (userName == null || userName == "")
 			throw new IllegalArgumentException("userName cannot be null or empty!");
 		if (password == null || password == "")
@@ -98,33 +115,64 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 
 		User user = new User(userName, generateHash(password));
 		users.add(user);
+		
+		//Alle Nutzer benachrichten, dass ein neuer Nutzer registriert wurde.
+		ObjectMessage jmsChatMessage = jmsContext.createObjectMessage();
+		try {
+			jmsChatMessage.setObject(new ChatMessage(ChatMessageType.REGISTER, user.getUserName(), "Registered", new Date()));
+		} catch (JMSException e) {
+			e.printStackTrace();
+		}
+		jmsContext.createProducer().send(chatMessageTopic, jmsChatMessage);
+		//Registrierungsbenachrichtigung Ende
 	}
 
 	@Lock(LockType.WRITE)
 	@Override
-	public User changePassword(User user, String newPassword) {
+	public void changePassword(User user, String newPassword) {
 		for (User user2 : users) {
-			if(user.getUserName().equals(user2.getUserName())){
+			if(user.getUserName().equals(user2.getUserName()) && user.getPasswordHash().equals(user2.getPasswordHash())){
 				user2.setPasswordHash(generateHash(newPassword));
-				return user2;
 			}
 		}
-		return null;
 	}
 
-	@Lock(LockType.READ)
+	@Lock(LockType.WRITE)
 	@Override
-	public User login(String userName, String password) throws LoginException  {
+	public void login(String userName, String password) throws LoginException  {
 		for (User user2 : users) {
-			System.out.println(password);
-			System.out.println(user2.getPasswordHash());
-			System.out.println(generateHash(password));
-			
 			if(user2.getUserName().equals(userName)&& user2.getPasswordHash().equals(generateHash(password)))
 			{
-				user2.setOnline(true);
-				onlineUserList.add(user2);
-				return user2;
+				//wenn der Nutzer sich zum zweiten Mal anmeldet, muss der andere Client geschlossen werden.
+				if(user2.isOnline())
+				{
+					ObjectMessage jmsChatMessage = jmsContext.createObjectMessage();
+					try {
+						jmsChatMessage.setObject(new ChatMessage(ChatMessageType.DISCONNECT, user2.getUserName(), "twiceLogin", new Date()));
+						jmsChatMessage.setStringProperty(ChatMessage.USER_PROPERTY_ID, user2.getUserName());
+					} catch (JMSException e) {
+						e.printStackTrace();
+					}
+					jmsContext.createProducer().send(chatMessageTopic, jmsChatMessage);
+					//Benachrichtigung zweiter Login Ende
+				}else{
+				//Bei erfolgreicher Anmeldung wird der User online gesetzt und der online liste hinzugefügt.
+				//läuft hier nur rein, wenn der user nicht schon online ist
+					user2.setOnline(true);
+					onlineUserList.add(user2);
+				}				
+				
+				//Alle anderen nutzer werden informiert, dass sich ein neuer Nutzer angemeldet hat.
+				ObjectMessage jmsChatMessage = jmsContext.createObjectMessage();
+				try {
+					jmsChatMessage.setObject(new ChatMessage(ChatMessageType.LOGIN, user2.getUserName(), "Login", new Date()));
+				} catch (JMSException e) {
+					e.printStackTrace();
+				}
+				jmsContext.createProducer().send(chatMessageTopic, jmsChatMessage);
+				//Benachrichtigung Login Ende
+				
+				return;
 			}
 		}
 		throw new LoginException("userName oder password sind falsch!");
@@ -135,8 +183,21 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 	public void logout(User user) {
 		for (User userTmp : onlineUserList) {
 			if (userTmp.getUserName().equals(user.getUserName())) {
+				//User aus der online-Liste austragen und offline setzen
 				userTmp.setOnline(false);
 				onlineUserList.remove(userTmp);
+				
+				
+				//Benachrichtung aller Nutzer über das Logout
+				ObjectMessage jmsChatMessage = jmsContext.createObjectMessage();
+				try {
+					jmsChatMessage.setObject(new ChatMessage(ChatMessageType.LOGOUT, userTmp.getUserName(), "Logout", new Date()));
+				} catch (JMSException e) {
+					e.printStackTrace();
+				}
+
+				jmsContext.createProducer().send(chatMessageTopic, jmsChatMessage);
+				//Benachrichtung Logout Ende
 				break;
 			}
 		}
@@ -161,7 +222,8 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 	}
 
 	// helper
-	private String generateHash(String plaintext) {
+	@Override
+	public String generateHash(String plaintext) {
 		String hash;
 
 		try {

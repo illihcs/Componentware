@@ -30,15 +30,18 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 		userManagement.login(userName, password);
 		
 		user.setUserName(userName);
-		user.setPasswordHash(password);
+		user.setPasswordHash(userManagement.generateHash(password));
 		user.setOnline(true);
 	}
 
 	//Logout and destroy Bean
 	@Override
 	public void logout() {
-		userManagement.logout(user);
-		user.setOnline(false);
+		if(user.isOnline()){
+			userManagement.logout(user);
+			user.setOnline(false);
+		}
+
 		disconnect();
 	}
 
@@ -54,14 +57,17 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 
 	@Override
 	public void delete(String password) {
-		if(user.getPasswordHash().equals(password))
+		if(user.getPasswordHash().equals(userManagement.generateHash(password)))
+		{
 			userManagement.delete(user);
+			logout();
+		}
 	}
 
+	//oldPassword überflüssig???
 	@Override
 	public void changePassword(String oldPassword, String newPassword) {
-		if(user.getPasswordHash().equals(oldPassword))
-			userManagement.changePassword(user, newPassword);
+		userManagement.changePassword(user, newPassword);
 	}
 
 	

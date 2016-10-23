@@ -7,14 +7,16 @@
 	<module>
 		<ejb>Chat-ejb.jar</ejb>
 	</module>
-
+<!-- 	<module>
+		<ejb>Chat-common.jar</ejb>
+	</module> -->
 	<jms-destination>
-		<name>java:global/jms/ChatMessageTopic</name>
+		<name>java:global/jms/ObserverTopic</name>
 		<interface-name>javax.jms.Topic</interface-name>
 		<destination-name>ChatMessageTopic</destination-name>
 	</jms-destination>
 	<jms-destination>
-		<name>java:global/jms/ChatMessageQueue</name>
+		<name>java:global/jms/ObserverQueue</name>
 		<interface-name>javax.jms.Queue</interface-name>
 		<destination-name>ChatMessageQueue</destination-name>
 	</jms-destination>

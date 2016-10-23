@@ -6,6 +6,7 @@ import java.util.Date;
 public class ChatMessage implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
+	public static final String USER_PROPERTY_ID = "AUTHOR_NAME";
 	
 	private ChatMessageType type;
 	private String sender;

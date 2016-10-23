@@ -14,5 +14,8 @@ public interface UserSessionHandler {
 
 	public void delete(String password);
 	
+	//User greift auf die Session zu und ändert darüber das Passwort
+	public void changePassword(String oldPassword, String newPassword);
+	
 
 }

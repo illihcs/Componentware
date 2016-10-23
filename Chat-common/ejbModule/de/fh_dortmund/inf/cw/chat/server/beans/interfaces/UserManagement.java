@@ -10,6 +10,7 @@ public interface UserManagement {
 
 	public int getNumberOfOnlineUsers();
 
-	public void register(String userName, String password);
+	public void register(String userName, String password) throws IllegalArgumentException;
 
+	public String generateHash(String plaintext);
 }

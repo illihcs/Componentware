@@ -8,12 +8,12 @@ import de.fh_dortmund.inf.cw.chat.server.exceptions.LoginException;
 @Local
 public interface UserManagementLocal extends UserManagement {
 
-	public User login(String userName, String password) throws LoginException;
+	public void login(String userName, String password) throws LoginException;
 
 	public void logout(User user);
 
 	public void delete(User user);
 
-	public User changePassword(User user, String newPassword);
+	public void changePassword(User user, String newPassword);
 
 }

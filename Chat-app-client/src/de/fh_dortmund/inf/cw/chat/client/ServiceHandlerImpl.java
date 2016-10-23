@@ -1,5 +1,6 @@
 package de.fh_dortmund.inf.cw.chat.client;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.jms.ConnectionFactory;
@@ -8,6 +9,7 @@ import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
+import javax.jms.ObjectMessage;
 import javax.jms.Queue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
@@ -18,23 +20,24 @@ import javax.naming.NamingException;
 import de.fh_dortmund.inf.cw.chat.client.shared.ChatMessageHandler;
 import de.fh_dortmund.inf.cw.chat.client.shared.ServiceHandler;
 import de.fh_dortmund.inf.cw.chat.client.shared.UserSessionHandler;
-import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.ChatRemote;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote;
 
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote;
+import de.fh_dortmund.inf.cw.chat.server.entities.User;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessage;
+import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessageType;
 
-public class ServiceHandlerImpl extends ServiceHandler implements UserSessionHandler, ChatMessageHandler, MessageListener {
+public class ServiceHandlerImpl extends ServiceHandler 
+		implements UserSessionHandler, ChatMessageHandler, MessageListener {
 
 	private Context ctx;
 	private UserSessionHandlerRemote userSessionHandler;
 	private UserManagementRemote userManagement;
-	private ChatRemote chat;
 	
 	private JMSContext jmsContext;
 	private Topic chatMessageTopic;
-	private JMSConsumer chatMessageConsumer;
 	private Queue chatMessageQueue;
+	private JMSConsumer chatMessageConsumer;
 
 	// Singleton Instance
 	private static ServiceHandlerImpl instance;
@@ -48,18 +51,22 @@ public class ServiceHandlerImpl extends ServiceHandler implements UserSessionHan
 					"java:global/Chat-ear/Chat-ejb/UserSessionHandlerBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote");
 			userManagement = (UserManagementRemote) ctx.lookup(
 					"java:global/Chat-ear/Chat-ejb/UserManagementBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote");
-			chat = (ChatRemote) ctx.lookup(
-					"java:global/Chat-ear/Chat-ejb/ChatBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.ChatRemote");
 			
 			
-			// JMS Context
+			//initialize JMS Context
 			ConnectionFactory connectionFactory = (ConnectionFactory) ctx
 					.lookup("java:comp/DefaultJMSConnectionFactory");
 			jmsContext = connectionFactory.createContext();
 
 			// Message Beans
-			chatMessageQueue = (Queue) ctx.lookup("java:global/jms/ChatMessageQueue");
-			chatMessageTopic = (Topic) ctx.lookup("java:global/jms/ChatMessageTopic");
+			//empfängt
+			chatMessageTopic = (Topic) ctx.lookup("java:global/jms/ObserverTopic");
+			//sendet
+			chatMessageQueue = (Queue) ctx.lookup("java:global/jms/ObserverQueue");
+			//Topic als Consumer anmelden und den Listener auf aktuelles Objekt setzen
+			jmsContext.createConsumer(chatMessageTopic).setMessageListener(this);
+			
+			unregisterConsumer();
 		} catch (NamingException e) {
 			e.printStackTrace();
 		}
@@ -86,6 +93,7 @@ public class ServiceHandlerImpl extends ServiceHandler implements UserSessionHan
 
 	@Override
 	public void disconnect() {
+		unregisterConsumer();
 		userSessionHandler.disconnect();
 	}
 
@@ -112,10 +120,12 @@ public class ServiceHandlerImpl extends ServiceHandler implements UserSessionHan
 	@Override
 	public void login(String userName, String password) throws Exception {
 		userSessionHandler.login(userName, password);
+		registerOnConsumer();
 	}
 
 	@Override
 	public void logout() throws Exception {
+		unregisterConsumer();
 		userSessionHandler.logout();
 	}
 
@@ -125,35 +135,59 @@ public class ServiceHandlerImpl extends ServiceHandler implements UserSessionHan
 	}
 
 	//Chat Message Handler
+	//Hört auf Nachrichten, die von Server gesendet werden.
 	@Override
 	public void onMessage(Message jmsMessage) {
 		try {
 			if (jmsMessage.isBodyAssignableTo(ChatMessage.class)) {
 				ChatMessage chatMessage = jmsMessage.getBody(ChatMessage.class);
 				
-				System.out.println(String.format("onChatMessage(%s)", chatMessage.toString()));
-
 				setChanged();
 				notifyObservers(chatMessage);
+
+				System.out.println(chatMessage.getText());
 			} else {
 				System.out.println("Falscher jmsMessageType" + jmsMessage);
 			}
-		} catch (Exception e) {
+		} catch (JMSException e) {
 			e.printStackTrace();
 		}		
 	}
 
+	//Sendet übergebene Nachricht an den Server
 	@Override
 	public void sendChatMessage(String message) {
-		System.out.println(String.format("sendChatMessage('%s')", message));
+		System.out.println("sendChatMessage(" + message+")");
 		
 		try {
 			TextMessage textMessage = jmsContext.createTextMessage(message);
-			textMessage.setStringProperty("bla","bla");//ChatMessage.USER_PROPERTY_ID, getUserName());
-		
+			textMessage.setStringProperty("Name", getUserName());
+			
 			jmsContext.createProducer().send(chatMessageQueue, textMessage);
 		} catch (JMSException e) {
-			throw new RuntimeException("Nachricht konnte nicht versendet werden: " + e.getMessage(), e);
+			e.printStackTrace();
 		}		
+	}
+	
+	private void registerOnConsumer(){
+		if(chatMessageConsumer != null){
+			return;
+		}else{
+			String userName = getUserName();
+			//Filter für die Usererkennung
+			String filter = String.format("%1$s IS NULL OR %1$s = \'%2$s\'", ChatMessage.USER_PROPERTY_ID, userName);
+			chatMessageConsumer= jmsContext.createConsumer(chatMessageTopic,filter);
+			chatMessageConsumer.setMessageListener(this);
+		}
+		
+	}
+	
+	public void unregisterConsumer(){
+		if(chatMessageConsumer == null){
+			return;
+		}else{
+			chatMessageConsumer.close();
+		}
+		chatMessageConsumer = null;
 	}
 }

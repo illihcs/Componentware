@@ -1,7 +1,10 @@
 package de.fh_dortmund.inf.cw.chat.server.entities;
 
-public class User {
+import java.io.Serializable;
 
+public class User implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 	private String userName;
 	private String passwordHash;
 	private boolean online;
