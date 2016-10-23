@@ -8,10 +8,6 @@
 		<ejb>Chat-ejb.jar</ejb>
 	</module>
 
-	<module>
-		<ejb>Chat-common.jar</ejb>
-	</module>
-
 	<jms-destination>
 		<name>java:global/jms/ChatMessageTopic</name>
 		<interface-name>javax.jms.Topic</interface-name>

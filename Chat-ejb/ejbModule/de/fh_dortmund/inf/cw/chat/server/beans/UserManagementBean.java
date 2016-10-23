@@ -102,17 +102,19 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 
 	@Lock(LockType.WRITE)
 	@Override
-	public void changePassword(User user, String newPassword) {
+	public User changePassword(User user, String newPassword) {
 		for (User user2 : users) {
 			if(user.getUserName().equals(user2.getUserName())){
 				user2.setPasswordHash(generateHash(newPassword));
+				return user2;
 			}
 		}
+		return null;
 	}
 
 	@Lock(LockType.READ)
 	@Override
-	public void login(String userName, String password) throws LoginException  {
+	public User login(String userName, String password) throws LoginException  {
 		for (User user2 : users) {
 			System.out.println(password);
 			System.out.println(user2.getPasswordHash());
@@ -122,7 +124,7 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 			{
 				user2.setOnline(true);
 				onlineUserList.add(user2);
-				return;
+				return user2;
 			}
 		}
 		throw new LoginException("userName oder password sind falsch!");
