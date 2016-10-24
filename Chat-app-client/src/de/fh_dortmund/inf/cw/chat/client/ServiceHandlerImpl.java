@@ -51,22 +51,6 @@ public class ServiceHandlerImpl extends ServiceHandler
 					"java:global/Chat-ear/Chat-ejb/UserSessionHandlerBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote");
 			userManagement = (UserManagementRemote) ctx.lookup(
 					"java:global/Chat-ear/Chat-ejb/UserManagementBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote");
-			
-			
-			//initialize JMS Context
-			ConnectionFactory connectionFactory = (ConnectionFactory) ctx
-					.lookup("java:comp/DefaultJMSConnectionFactory");
-			jmsContext = connectionFactory.createContext();
-
-			// Message Beans
-			//empfängt
-			chatMessageTopic = (Topic) ctx.lookup("java:global/jms/ObserverTopic");
-			//sendet
-			chatMessageQueue = (Queue) ctx.lookup("java:global/jms/ObserverQueue");
-			//Topic als Consumer anmelden und den Listener auf aktuelles Objekt setzen
-			jmsContext.createConsumer(chatMessageTopic).setMessageListener(this);
-			
-			unregisterConsumer();
 		} catch (NamingException e) {
 			e.printStackTrace();
 		}
@@ -79,7 +63,7 @@ public class ServiceHandlerImpl extends ServiceHandler
 
 		return instance;
 	}
-
+	
 	@Override
 	public void changePassword(String oldPassword, String newPassword) throws Exception {
 		userSessionHandler.changePassword(oldPassword, newPassword);
@@ -169,17 +153,24 @@ public class ServiceHandlerImpl extends ServiceHandler
 		}		
 	}
 	
+	//initialize JMS Context 
 	private void registerOnConsumer(){
-		if(chatMessageConsumer != null){
-			return;
-		}else{
-			String userName = getUserName();
+		try {
+			ConnectionFactory connectionFactory = (ConnectionFactory) ctx.lookup("java:comp/DefaultJMSConnectionFactory");
+			jmsContext = connectionFactory.createContext();
+	
+			// Message Beans
+			//empfängt
+			chatMessageTopic = (Topic) ctx.lookup("java:global/jms/ObserverTopic");
+			//sendet
+			chatMessageQueue = (Queue) ctx.lookup("java:global/jms/ObserverQueue");
+			//Topic als Consumer anmelden und den Listener auf aktuelles Objekt setzen
 			//Filter für die Usererkennung
-			String filter = String.format("%1$s IS NULL OR %1$s = \'%2$s\'", ChatMessage.USER_PROPERTY_ID, userName);
-			chatMessageConsumer= jmsContext.createConsumer(chatMessageTopic,filter);
-			chatMessageConsumer.setMessageListener(this);
+			String filter = String.format("%1$s IS NULL OR %1$s = \'%2$s\'", ChatMessage.USER_PROPERTY_ID, getUserName());
+			jmsContext.createConsumer(chatMessageTopic,filter).setMessageListener(this);		
+		} catch (NamingException e) {
+			e.printStackTrace();
 		}
-		
 	}
 	
 	public void unregisterConsumer(){
