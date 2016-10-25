@@ -1,10 +1,13 @@
 package de.fh_dortmund.inf.cw.chat.server.beans;
 
+import java.util.Date;
+
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Remove;
 import javax.ejb.Stateful;
 
+import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.StatisticManagementLocal;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementLocal;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerLocal;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote;
@@ -16,10 +19,11 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 
 	User user;
 	
-	
 	@EJB
 	private UserManagementLocal userManagement;
-	
+	@EJB
+	private StatisticManagementLocal statisticManagement;
+
 	@PostConstruct
 	public void init(){
 		user = new User();
@@ -32,6 +36,9 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 		user.setUserName(userName);
 		user.setPasswordHash(userManagement.generateHash(password));
 		user.setOnline(true);
+		
+		statisticManagement.createUserStatisticIfNotExisting(user);
+		statisticManagement.incrementLoginCount(user,new Date());
 	}
 
 	//Logout and destroy Bean
@@ -40,6 +47,7 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 		if(user.isOnline()){
 			userManagement.logout(user);
 			user.setOnline(false);
+			statisticManagement.incrementLogoutCount(user);
 		}
 
 		disconnect();
@@ -69,10 +77,4 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 	public void changePassword(String oldPassword, String newPassword) {
 		userManagement.changePassword(user, newPassword);
 	}
-
-	
-	
-	
-	
-	
 }

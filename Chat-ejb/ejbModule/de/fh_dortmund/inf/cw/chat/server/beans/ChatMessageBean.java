@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.annotation.Resource;
 import javax.ejb.ActivationConfigProperty;
+import javax.ejb.EJB;
 import javax.ejb.MessageDriven;
 import javax.inject.Inject;
 import javax.jms.JMSContext;
@@ -17,6 +18,7 @@ import javax.jms.ObjectMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.StatisticManagementLocal;
 import de.fh_dortmund.inf.cw.chat.server.entities.User;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessage;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessageType;
@@ -31,6 +33,8 @@ public class ChatMessageBean implements MessageListener {
 	private static final List<String> FORBIDDEN_WORDS = new ArrayList<String>(Arrays.asList((new String[] { "Wichser", "Hurensohn", "Hure", "Arschloch" })));
 	//Schmipfworteinstellungen / -vorlagen
 	
+	@EJB
+	private StatisticManagementLocal statisticManagement;
 
 	//Inject JMS Context
 	@Inject
@@ -53,6 +57,11 @@ public class ChatMessageBean implements MessageListener {
 			User sender = new User();
 			sender.setUserName(textMsg.getStringProperty("Name"));
 
+			//increment message counter of userstatistics
+			System.out.println("increment message counter for user " + sender.getUserName());
+			statisticManagement.incrementMessageCount(sender);
+			//increment message counter of userstatistics
+			
 			ChatMessage chatMessage = new ChatMessage(ChatMessageType.TEXT, sender.getUserName(), text, new Date());
 			notifyViaChatMessageTopic(chatMessage);
 		} catch (JMSException e) {

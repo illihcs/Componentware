@@ -19,20 +19,25 @@ import javax.naming.NamingException;
 
 import de.fh_dortmund.inf.cw.chat.client.shared.ChatMessageHandler;
 import de.fh_dortmund.inf.cw.chat.client.shared.ServiceHandler;
+import de.fh_dortmund.inf.cw.chat.client.shared.StatisticHandler;
 import de.fh_dortmund.inf.cw.chat.client.shared.UserSessionHandler;
+import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.StatisticManagementRemote;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote;
 
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote;
+import de.fh_dortmund.inf.cw.chat.server.entities.CommonStatistic;
 import de.fh_dortmund.inf.cw.chat.server.entities.User;
+import de.fh_dortmund.inf.cw.chat.server.entities.UserStatistic;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessage;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessageType;
 
 public class ServiceHandlerImpl extends ServiceHandler 
-		implements UserSessionHandler, ChatMessageHandler, MessageListener {
+		implements UserSessionHandler, ChatMessageHandler, MessageListener, StatisticHandler {
 
 	private Context ctx;
 	private UserSessionHandlerRemote userSessionHandler;
 	private UserManagementRemote userManagement;
+	private StatisticManagementRemote statisticManagement;
 	
 	private JMSContext jmsContext;
 	private Topic chatMessageTopic;
@@ -51,6 +56,8 @@ public class ServiceHandlerImpl extends ServiceHandler
 					"java:global/Chat-ear/Chat-ejb/UserSessionHandlerBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote");
 			userManagement = (UserManagementRemote) ctx.lookup(
 					"java:global/Chat-ear/Chat-ejb/UserManagementBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote");
+			statisticManagement = (StatisticManagementRemote) ctx.lookup(
+					"java:global/Chat-ear/Chat-ejb/StatisticManagementBean!de.fh_dortmund.inf.cw.chat.server.beans.interfaces.StatisticManagementRemote");
 		} catch (NamingException e) {
 			e.printStackTrace();
 		}
@@ -181,4 +188,21 @@ public class ServiceHandlerImpl extends ServiceHandler
 		}
 		chatMessageConsumer = null;
 	}
+	//Chat Message Handler Ende
+	
+	
+	//StatisticHandler
+	@Override
+	public List<CommonStatistic> getStatistics() {
+		System.out.println(statisticManagement.getCommonStatistic().size());
+		return statisticManagement.getCommonStatistic();
+	}
+
+	@Override
+	public UserStatistic getUserStatistic() {
+		System.out.println(getUserName() + "ServiceHandler getUserStatistic()");
+		System.out.println(statisticManagement.getUserStatistic(getUserName()));
+		return statisticManagement.getUserStatistic(getUserName());
+	}
+	//StatisticHandler Ende
 }
