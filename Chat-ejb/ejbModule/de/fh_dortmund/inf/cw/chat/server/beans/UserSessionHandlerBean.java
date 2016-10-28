@@ -39,6 +39,7 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 		
 		statisticManagement.createUserStatisticIfNotExisting(user);
 		statisticManagement.incrementLoginCount(user,new Date());
+		statisticManagement.startIntervallHalfHourTimer();
 	}
 
 	//Logout and destroy Bean

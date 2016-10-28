@@ -16,4 +16,7 @@ public interface StatisticManagementLocal extends StatisticManagement {
 	void incrementLogoutCount(User user);
 
 	void incrementMessageCount(User user);
+
+	void startIntervallHalfHourTimer();
+
 }
