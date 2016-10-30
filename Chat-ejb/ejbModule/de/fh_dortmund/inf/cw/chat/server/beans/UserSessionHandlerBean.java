@@ -18,46 +18,42 @@ import de.fh_dortmund.inf.cw.chat.server.exceptions.LoginException;
 public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSessionHandlerRemote {
 
 	User user;
-	
+
 	@EJB
 	private UserManagementLocal userManagement;
 	@EJB
 	private StatisticManagementLocal statisticManagement;
 
 	@PostConstruct
-	public void init(){
+	public void init() {
 		user = new User();
 	}
-	
+
 	@Override
-	public void login(String userName, String password)  throws LoginException{
+	public void login(String userName, String password) throws LoginException {
 		userManagement.login(userName, password);
-		
+
 		user.setUserName(userName);
 		user.setPasswordHash(userManagement.generateHash(password));
-		user.setOnline(true);
-		
+
 		statisticManagement.createUserStatisticIfNotExisting(user);
-		statisticManagement.incrementLoginCount(user,new Date());
+		statisticManagement.incrementLoginCount(user, new Date());
 		statisticManagement.startIntervallHalfHourTimer();
 	}
 
-	//Logout and destroy Bean
+	// Logout and destroy Bean
 	@Override
 	public void logout() {
-		if(user.isOnline()){
-			userManagement.logout(user);
-			user.setOnline(false);
-			statisticManagement.incrementLogoutCount(user);
-		}
-
+		userManagement.logout(user);
+		statisticManagement.incrementLogoutCount(user);
 		disconnect();
 	}
 
-	//Destroy Bean
+	// Destroy Bean
 	@Remove
 	@Override
-	public void disconnect() {}
+	public void disconnect() {
+	}
 
 	@Override
 	public String getUserName() {
@@ -66,14 +62,13 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 
 	@Override
 	public void delete(String password) {
-		if(user.getPasswordHash().equals(userManagement.generateHash(password)))
-		{
+		if (user.getPasswordHash().equals(userManagement.generateHash(password))) {
 			userManagement.delete(user);
 			logout();
 		}
 	}
 
-	//oldPassword überflüssig???
+	// oldPassword überflüssig???
 	@Override
 	public void changePassword(String oldPassword, String newPassword) {
 		userManagement.changePassword(user, newPassword);

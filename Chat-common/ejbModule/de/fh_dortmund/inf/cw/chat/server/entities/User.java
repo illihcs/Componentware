@@ -2,12 +2,44 @@ package de.fh_dortmund.inf.cw.chat.server.entities;
 
 import java.io.Serializable;
 
-public class User implements Serializable{
+import java.util.UUID;
 
+import javax.persistence.Basic;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.Table;
+
+@Table(name = "users")
+@NamedQueries({
+	@NamedQuery(name = User.GET_USER_QUERY, query = "select u from User u where u.userName = :userName AND u.passwordHash = :passwordHash"),
+	@NamedQuery(name = User.COUNT_REGISTERED_USER, query = "count * from User")
+})
+
+@Entity
+public class User implements Serializable{
 	private static final long serialVersionUID = 1L;
+
+	public static final String GET_USER_QUERY = "User$getUser";
+	public static final String COUNT_REGISTERED_USER = "User$countRegisteredUser";
+		
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private UUID uuID;
+	@Basic(optional = false)
+	@Column(nullable = false)
 	private String userName;
+	@Basic(optional = false)
+	@Column(nullable = false)
 	private String passwordHash;
-	private boolean online;
+//	@Basic(optional = false)
+//	@Column(nullable = false)
+//	private boolean online;
 	
 	public User(){}
 	
@@ -16,17 +48,21 @@ public class User implements Serializable{
 	{
 		this.userName = userName;
 		this.passwordHash = passwordHash;
-		this.online = false;
+		//this.online = false;
 	}
 	
-	public boolean isOnline() {
-		return online;
+	public UUID getUUID() {
+		return uuID;
 	}
-	
-	public void setOnline(boolean online) {
-		this.online = online;
-	}
-	
+
+//	public boolean isOnline() {
+//		return online;
+//	}
+//	
+//	public void setOnline(boolean online) {
+//		this.online = online;
+//	}
+//	
 	public String getPasswordHash() {
 		return passwordHash;
 	}

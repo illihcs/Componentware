@@ -9,8 +9,8 @@
 		<property name="port" value="1527" />
 		<property name="databaseName" value="chat" />
 		<property name="connectionAttributes" value=";create=true" />
-		<property name="user" value="admin" />
-		<property name="password" value="admin" />
+		<property name="user" value="APP" />
+		<property name="password" value="APP" />
 	</jdbc-connection-pool>
 
 	<jdbc-resource enabled="true" jndi-name="java:app/jdbc/ChatDB" pool-name="ChatDBPool" />
