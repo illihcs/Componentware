@@ -3,6 +3,10 @@
 	<persistence-unit name="ChatDB" transaction-type="JTA">
 		<jta-data-source>java:app/jdbc/ChatDB</jta-data-source>
 		<jar-file>Chat-common.jar</jar-file>
+		<class>de.fh_dortmund.inf.cw.chat.server.entities.Statistic</class>
+		<class>de.fh_dortmund.inf.cw.chat.server.entities.CommonStatistic</class>
+		<class>de.fh_dortmund.inf.cw.chat.server.entities.UserStatistic</class>
+		<class>de.fh_dortmund.inf.cw.chat.server.entities.User</class>
 		<properties>
 			<property name="eclipselink.target-database" value="Derby"/>
 			<property name="eclipselink.ddl-generation" value="drop-and-create-tables" />

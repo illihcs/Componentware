@@ -2,22 +2,23 @@ package de.fh_dortmund.inf.cw.chat.server.entities;
 
 import java.util.Date;
 
+import javax.persistence.Basic;
 import javax.persistence.Entity;
 import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 @NamedQueries({
-	@NamedQuery(name = UserStatistic.GET_USERSTATISTIC_QUERY, query = "select u from UserStatistic u where u.userName = :userName")
-})
+	})
 
 
 @Entity
 public class UserStatistic extends Statistic {
-	public static final String GET_USERSTATISTIC_QUERY = "UserStatistic$getUserStatistic";
-
-	
 	private static final long serialVersionUID = 1L;
 	
+	@Basic(optional = true)
+//	@Column(nullable = false)
+	@Temporal(TemporalType.TIMESTAMP)
 	private Date lastLogin;
 
 	public Date getLastLogin() {

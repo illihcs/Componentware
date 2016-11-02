@@ -19,6 +19,7 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.StatisticManagementLocal;
+import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementLocal;
 import de.fh_dortmund.inf.cw.chat.server.entities.User;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessage;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessageType;
@@ -35,6 +36,9 @@ public class ChatMessageBean implements MessageListener {
 	
 	@EJB
 	private StatisticManagementLocal statisticManagement;
+
+	@EJB
+	private UserManagementLocal userManagement;
 
 	//Inject JMS Context
 	@Inject
@@ -54,8 +58,7 @@ public class ChatMessageBean implements MessageListener {
 			//Schimpfwörter aussortieren bzw. umbenennen
 			String text = filterForbiddenWords(textMsg.getText());
 			
-			User sender = new User();
-			sender.setUserName(textMsg.getStringProperty("Name"));
+			User sender = userManagement.getUserByName(textMsg.getStringProperty("Name"));
 
 			//increment message counter of userstatistics
 			System.out.println("increment message counter for user " + sender.getUserName());

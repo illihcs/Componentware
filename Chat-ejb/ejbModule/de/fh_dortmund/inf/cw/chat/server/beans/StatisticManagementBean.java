@@ -4,7 +4,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -20,6 +19,7 @@ import javax.jms.JMSContext;
 import javax.jms.ObjectMessage;
 import javax.jms.Topic;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 
@@ -54,16 +54,15 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	private EntityManager entityManager;
 
 	// Attribute
-	//CommonStatistic UUID
-	private UUID newestUUID;
-	//HashMap<String, UserStatistic> userStatisticMap;
-	//LinkedList<CommonStatistic> commonStatistic;
+	// Actual CommonStatistic
+	private CommonStatistic newestCommonStatistic;
+	// HashMap<String, UserStatistic> userStatisticMap;
+	// LinkedList<CommonStatistic> commonStatistic;
 	// Attribute Ende
 
 	@PostConstruct
 	public void init() {
-		//userStatisticMap = new HashMap();
-		//commonStatistic = new LinkedList<CommonStatistic>();
+		newestCommonStatistic = createCommonStatistic();
 	}
 
 	// TimerMethoden
@@ -92,22 +91,25 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 			// muss noch von 2 in 60 geändert werden
 			timerService.createIntervalTimer(initialExpirationCalendar.getTime(), 1000 * 60 * 60, timerConfig);
 			System.out.println("INTERVALLTIMER GESTARTET!!!");
-
 		}
 	}
 
 	// Löst Intervall-Timer und notify aus
 	@Timeout
 	public void timeout(Timer timer) {
-		TypedQuery<Integer> query = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_SIZE_QUERY, Integer.class);
-		TypedQuery<CommonStatistic> queryGetNewest = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_QUERY, CommonStatistic.class);
-		query.setParameter("uuID", newestUUID);
-		
+		// TypedQuery<Integer> query =
+		// entityManager.createNamedQuery("GET_COMMONSTATISTIC_SIZE_QUERY",
+		// Integer.class);
+		// TypedQuery<CommonStatistic> queryGetNewest =
+		// entityManager.createNamedQuery("GET_COMMONSTATISTIC_QUERY",
+		// CommonStatistic.class);
+		// query.setParameter("uuID", newestUUID);
+		//
 		if (HALF_HOUR_TIMER.equals(timer.getInfo())) {
-			if (query.getSingleResult() == 0) {
-				createAndInsertCommonStatistic();
-			}
-			notifyOfStatistic("Statistik der letzten halben Stunde", queryGetNewest.getSingleResult());
+			// if (query.getSingleResult() == 0) {
+			// createAndInsertCommonStatistic();
+			// }
+			notifyOfStatistic("Statistik der letzten halben Stunde", newestCommonStatistic);
 		}
 	}
 	// INTERVALLTIMER ENDE
@@ -116,17 +118,22 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	@Schedule(second = "10", minute = "*", hour = "*", info = FULL_HOUR_TIMER, persistent = false)
 	private void timerFullHour() {
 		System.out.println("----FULLHOUR TIMER!!!");
-		TypedQuery<Integer> query = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_SIZE_QUERY, Integer.class);
-		TypedQuery<CommonStatistic> queryGetNewest = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_QUERY, CommonStatistic.class);
-		query.setParameter("uuID", newestUUID);
-		
-		if (query.getSingleResult() == 0) {
-			createAndInsertCommonStatistic();
-		}
-		notifyOfStatistic("Statistik der letzten Stunde", queryGetNewest.getSingleResult());
+		// TypedQuery<Integer> query =
+		// entityManager.createNamedQuery("GET_COMMONSTATISTIC_SIZE_QUERY",
+		// Integer.class);
+		// TypedQuery<CommonStatistic> queryGetNewest =
+		// entityManager.createNamedQuery("GET_COMMONSTATISTIC_QUERY",
+		// CommonStatistic.class);
+		// query.setParameter("uuID", newestUUID);
+		//
+		// if (query.getSingleResult() == 0) {
+		// createAndInsertCommonStatistic();
+		// }
+		notifyOfStatistic("Statistik der letzten Stunde", newestCommonStatistic);
 
-		createAndInsertCommonStatistic();
+		persistAndMakeNewStatistic();
 	}
+
 	// ANDERER TIMER ENDE
 	// TimerMethoden Ende
 
@@ -135,7 +142,8 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	public UserStatistic getUserStatistic(String UserName) {
 		System.out.println(UserName + " | getUserStatistic(String UserName)");
 
-		TypedQuery<UserStatistic> query = entityManager.createNamedQuery(UserStatistic.GET_USERSTATISTIC_QUERY, UserStatistic.class);
+		TypedQuery<UserStatistic> query = entityManager.createNamedQuery("GET_USERSTATISTIC_QUERY",
+				UserStatistic.class);
 		query.setParameter("userName", UserName);
 		UserStatistic us = query.getSingleResult();
 
@@ -145,8 +153,11 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	@Override
 	public List<CommonStatistic> getCommonStatistic() {
 		System.out.println(" | getCommonStatistic SMB");
-		TypedQuery<CommonStatistic> query = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_ALL_QUERY, CommonStatistic.class);
-		return query.getResultList();
+		TypedQuery<CommonStatistic> query = entityManager.createNamedQuery("GET_COMMONSTATISTIC_ALL_QUERY",
+				CommonStatistic.class);
+		List<CommonStatistic> resultList = query.getResultList();
+		resultList.add(newestCommonStatistic);
+		return resultList;
 	}
 	// Methoden Ende
 
@@ -155,10 +166,17 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	@Override
 	public void createUserStatisticIfNotExisting(User user) {
 		System.out.println(user.getUserName() + "CREATE USER STATISTIC IF NOT EXIST!!!");
-		TypedQuery<UserStatistic> query = entityManager.createNamedQuery(UserStatistic.GET_USERSTATISTIC_QUERY, UserStatistic.class);
+		TypedQuery<UserStatistic> query = entityManager.createNamedQuery("GET_USERSTATISTIC_QUERY",
+				UserStatistic.class);
 		query.setParameter("userName", user.getUserName());
-		UserStatistic us = query.getSingleResult();
-		
+		UserStatistic us = null;
+
+		try {
+			us = query.getSingleResult();
+		} catch (NoResultException e) {
+			System.out.println("---------------No result for USERSTATISTIC!");
+		}
+
 		if (us == null) {
 			UserStatistic userStatistic = new UserStatistic();
 			userStatistic.setLastLogin(new Date());
@@ -166,6 +184,8 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 			userStatistic.setLogouts(0);
 			userStatistic.setMessages(0);
 			entityManager.persist(userStatistic);
+			user.setStatistic(userStatistic);
+			entityManager.flush();
 			System.out.println("create UserStatistic");
 		}
 	}
@@ -173,17 +193,11 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	// increment login count for user
 	@Override
 	public void incrementLoginCount(User user, Date date) {
-		System.out.println(user.getUserName() + "login");
-		TypedQuery<UserStatistic> query = entityManager.createNamedQuery(UserStatistic.GET_USERSTATISTIC_QUERY, UserStatistic.class);
-		query.setParameter("userName", user.getUserName());
-		UserStatistic us = query.getSingleResult();
-		if (us == null) {
-			System.out.println("Du Wichser bist behindert!!!!!!!!!!!!!!");
-			return;
-		}
-		us.setLogins(us.getLogins() + 1);
-		us.setLastLogin(date);
-		entityManager.merge(us);
+
+		user.getStatistic().setLogins(user.getStatistic().getLogins() + 1);
+		user.getStatistic().setLastLogin(date);
+		entityManager.merge(user.getStatistic());
+		entityManager.flush();
 		System.out.println("increment Login count!");
 
 		// IncrementLogin in der aktuellen CommonStatistic
@@ -194,12 +208,9 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	// increment logout count for user
 	@Override
 	public void incrementLogoutCount(User user) {
-		System.out.println(user.getUserName() + "logout");
-		TypedQuery<UserStatistic> query = entityManager.createNamedQuery(UserStatistic.GET_USERSTATISTIC_QUERY, UserStatistic.class);
-		query.setParameter("userName", user.getUserName());
-		UserStatistic us = query.getSingleResult();
-		us.setLogouts(us.getLogouts() + 1);
-		entityManager.merge(us);
+		user.getStatistic().setLogouts(user.getStatistic().getLogouts() + 1);
+		entityManager.merge(user.getStatistic());
+		entityManager.flush();
 		System.out.println("increment Logout count!");
 
 		// IncrementLogin in der aktuellen CommonStatistic
@@ -210,12 +221,9 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	// increment message count for user
 	@Override
 	public void incrementMessageCount(User user) {
-		TypedQuery<UserStatistic> query = entityManager.createNamedQuery(UserStatistic.GET_USERSTATISTIC_QUERY, UserStatistic.class);
-		query.setParameter("userName", user.getUserName());
-		UserStatistic us = query.getSingleResult();
-		us.setMessages(us.getMessages() + 1);
-		entityManager.merge(us);
-		
+		user.getStatistic().setMessages(user.getStatistic().getMessages() + 1);
+		entityManager.merge(user.getStatistic());
+		entityManager.flush();
 		// IncrementLogin in der aktuellen CommonStatistic
 		// Falls noch nicht vorhanden wird sie erstellt
 		incrementCommonStatistic(0, 0, 1);
@@ -223,8 +231,15 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	// Methoden Local Bean Ende
 
 	// Helper Methods CommonStatistic
+	// so wie es heißt
+	private void persistAndMakeNewStatistic() {
+		entityManager.persist(newestCommonStatistic);
+		entityManager.flush();
+		newestCommonStatistic = createCommonStatistic();
+	}
+
 	// Create and inserts common statistic
-	public void createAndInsertCommonStatistic() {
+	public CommonStatistic createCommonStatistic() {
 		Calendar cur = new GregorianCalendar();
 		cur.set(Calendar.MINUTE, 0);
 		cur.set(Calendar.SECOND, 0);
@@ -243,29 +258,43 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 		cs.setMessages(0);
 		cs.setStartingDate(startdate);
 		cs.setEndDate(enddate);
-		entityManager.persist(cs);
+
+		return cs;
 	}
 
 	public CommonStatistic returnActualCommonStatistic() {
-		TypedQuery<CommonStatistic> queryGetNewest = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_QUERY, CommonStatistic.class);
-		queryGetNewest.setParameter("uuID", newestUUID);
-		return queryGetNewest.getSingleResult();
+//		TypedQuery<CommonStatistic> queryGetNewest = entityManager.createNamedQuery("GET_COMMONSTATISTIC_QUERY",
+//				CommonStatistic.class);
+//		queryGetNewest.setParameter("uuID", newestUUID);
+//		CommonStatistic cs = null;
+//		try {
+//			cs = queryGetNewest.getSingleResult();
+//		} catch (NoResultException e) {
+//			System.out.println("---------------No result for COMMONSTATISTIC!");
+//		}
+//		return cs;
+		return newestCommonStatistic;
 	}
 
 	public void incrementCommonStatistic(int login, int logout, int message) {
-		TypedQuery<Integer> query = entityManager.createNamedQuery(CommonStatistic.GET_COMMONSTATISTIC_SIZE_QUERY, Integer.class);
-		
-		CommonStatistic cs = null;
-		if (query.getSingleResult()  == 0) {
-			createAndInsertCommonStatistic();
-			cs = returnActualCommonStatistic();
-		} else {
-			cs = returnActualCommonStatistic();
-		}
-		cs.setLogins(cs.getLogins() + login);
-		cs.setLogouts(cs.getLogouts() + logout);
-		cs.setMessages(cs.getMessages() + message);
-		entityManager.merge(cs);
+//		TypedQuery<Long> query = entityManager.createNamedQuery("GET_COMMONSTATISTIC_SIZE_QUERY", Long.class);
+//
+//		CommonStatistic cs = null;
+//		long count = query.getSingleResult();
+//		int count2 = (int) count;
+//		if (count2 == 0) {
+//			createAndInsertCommonStatistic();
+//			cs = returnActualCommonStatistic();
+//		} else {
+//			cs = returnActualCommonStatistic();
+//		}
+//		cs.setLogins(cs.getLogins() + login);
+//		cs.setLogouts(cs.getLogouts() + logout);
+//		cs.setMessages(cs.getMessages() + message);
+//		entityManager.merge(cs);
+		newestCommonStatistic.setLogins(newestCommonStatistic.getLogins() + login);
+		newestCommonStatistic.setLogouts(newestCommonStatistic.getLogouts() + logout);
+		newestCommonStatistic.setMessages(newestCommonStatistic.getMessages() + message);
 	}
 	// Helper Methods CommonStatistic End
 

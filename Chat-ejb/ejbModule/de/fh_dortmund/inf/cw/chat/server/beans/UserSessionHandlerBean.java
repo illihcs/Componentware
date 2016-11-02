@@ -25,18 +25,13 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 	private StatisticManagementLocal statisticManagement;
 
 	@PostConstruct
-	public void init() {
-		user = new User();
-	}
+	public void init() {}
 
 	@Override
 	public void login(String userName, String password) throws LoginException {
-		userManagement.login(userName, password);
+		user = userManagement.login(userName, password);
 
-		user.setUserName(userName);
-		user.setPasswordHash(userManagement.generateHash(password));
-
-		statisticManagement.createUserStatisticIfNotExisting(user);
+		//statisticManagement.createUserStatisticIfNotExisting(user);
 		statisticManagement.incrementLoginCount(user, new Date());
 		statisticManagement.startIntervallHalfHourTimer();
 	}

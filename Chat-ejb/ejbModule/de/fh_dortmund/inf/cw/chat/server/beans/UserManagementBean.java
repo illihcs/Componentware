@@ -16,6 +16,7 @@ import javax.jms.JMSException;
 import javax.jms.ObjectMessage;
 import javax.jms.Topic;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 
@@ -80,6 +81,18 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 		// users.add(tmpUser5);
 	}
 
+	public User getUserByName(String userName){
+		TypedQuery<User> query = entityManager.createNamedQuery("GET_USER_BY_NAME_QUERY", User.class);
+		query.setParameter("userName", userName);
+		User user = null;
+		try {
+			user = query.getSingleResult();
+		} catch (NoResultException e) {
+			System.out.println("----------------------No result for USER!");
+		}
+		return user;
+	}
+	
 	@Override
 	public List<String> getOnlineUsers() {
 		List<String> tmp = new ArrayList<String>();
@@ -92,9 +105,9 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 
 	@Override
 	public int getNumberOfRegisteredUsers() {
-		TypedQuery<Integer> query = entityManager.createNamedQuery(User.COUNT_REGISTERED_USER, Integer.class);
-		int count = query.getSingleResult();
-		return count;
+		TypedQuery<Long> query = entityManager.createNamedQuery("COUNT_REGISTERED_USER", Long.class);
+		long count = query.getSingleResult();
+		return (int) count;
 	}
 
 	@Override
@@ -112,6 +125,7 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 		// Usererstellung und Speicherung in der DB
 		User user = new User(userName, generateHash(password));
 		entityManager.persist(user);
+		entityManager.persist(user.getStatistic());
 
 		// Alle Nutzer benachrichten, dass ein neuer Nutzer registriert wurde.
 		ObjectMessage jmsChatMessage = jmsContext.createObjectMessage();
@@ -137,11 +151,16 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 	}
 
 	@Override
-	public void login(String userName, String password) throws LoginException {
-		TypedQuery<User> query = entityManager.createNamedQuery(User.GET_USER_QUERY, User.class);
+	public User login(String userName, String password) throws LoginException {
+		TypedQuery<User> query = entityManager.createNamedQuery("GET_USER_QUERY", User.class);
 		query.setParameter("userName", userName);
-		query.setParameter("passwordHash", password);
-		User user = query.getSingleResult();
+		query.setParameter("passwordHash", generateHash(password));
+		User user = null;
+		try {
+			user = query.getSingleResult();
+		} catch (NoResultException e) {
+			System.out.println("----------------------No result for USER!");
+		}
 
 		if (user != null) {
 			// wenn der Nutzer sich zum zweiten Mal anmeldet, muss der andere
@@ -161,7 +180,7 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 				// Bei erfolgreicher Anmeldung wird der User online gesetzt und
 				// der online liste hinzugefügt.
 				// läuft hier nur rein, wenn der user nicht schon online ist
-				//user.setOnline(true);
+				// user.setOnline(true);
 				onlineUserList.add(user);
 			}
 
@@ -177,7 +196,7 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 			jmsContext.createProducer().send(chatMessageTopic, jmsChatMessage);
 			// Benachrichtigung Login Ende
 
-			return;
+			return user;
 		}
 		throw new LoginException("userName oder password sind falsch!");
 	}
@@ -185,9 +204,9 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 	@Override
 	public void logout(User user) {
 		for (User userTmp : onlineUserList) {
-			if (userTmp.getUUID().equals(user.getUUID())) {
+			if (userTmp.getUUID() == user.getUUID()) {
 				// User aus der online-Liste austragen und offline setzen
-				//userTmp.setOnline(false);
+				// userTmp.setOnline(false);
 				onlineUserList.remove(userTmp);
 
 				// Benachrichtung aller Nutzer über das Logout
@@ -220,16 +239,15 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 	}
 
 	// helper
-	private boolean isOnline(User user){
+	private boolean isOnline(User user) {
 		for (User userTmp : onlineUserList) {
-			if (userTmp.getUUID().equals(user.getUUID())) {
+			if (userTmp.getUUID() == user.getUUID()) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
-	
+
 	@Override
 	public String generateHash(String plaintext) {
 		String hash;
