@@ -115,7 +115,8 @@ public class StatisticManagementBean implements StatisticManagementLocal, Statis
 	// INTERVALLTIMER ENDE
 
 	// ANDERER TIMER
-	@Schedule(second = "10", minute = "*", hour = "*", info = FULL_HOUR_TIMER, persistent = false)
+	//minute = "*", --> für jede minute test hinzufügen
+	@Schedule(hour = "*", info = FULL_HOUR_TIMER, persistent = false)
 	private void timerFullHour() {
 		System.out.println("----FULLHOUR TIMER!!!");
 		// TypedQuery<Integer> query =
