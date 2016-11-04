@@ -60,12 +60,18 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 		if (user.getPasswordHash().equals(userManagement.generateHash(password))) {
 			userManagement.delete(user);
 			disconnect();
+			return;
 		}
+		throw new IllegalArgumentException("password is wrong!");
 	}
 
-	// oldPassword überflüssig???
 	@Override
 	public void changePassword(String oldPassword, String newPassword) {
-		userManagement.changePassword(user, newPassword);
+		if(user.getPasswordHash().equals(userManagement.generateHash(oldPassword))){
+			userManagement.changePassword(user, newPassword);
+			return;
+		}
+		throw new IllegalArgumentException("oldPassword is wrong");
+		
 	}
 }

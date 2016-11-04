@@ -121,7 +121,7 @@ public class ServiceHandlerImpl extends ServiceHandler
 	}
 
 	@Override
-	public void logout() throws Exception {
+	public void logout() {
 		unregisterConsumer();
 		userSessionHandler.logout();
 	}

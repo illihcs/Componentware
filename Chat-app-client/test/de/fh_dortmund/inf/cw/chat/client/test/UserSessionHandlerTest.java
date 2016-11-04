@@ -81,24 +81,45 @@ public class UserSessionHandlerTest {
 		serviceHandler.changePassword(testPassword, newPassword);
 		testPassword = newPassword;
 	}
+	
+	@Test(expected = Exception.class)
+	public void test008_changePasswordWithException() throws Exception
+	{
+		serviceHandler.changePassword(testPassword + "salt", testPassword);
+	}
 
 	@Test
-	public void test008_logout() throws Exception {
+	public void test009_logout() throws Exception {
+		serviceHandler.initializeSession();
+		serviceHandler.login(testUsername, testPassword);
 		serviceHandler.logout();
 		onlineUser--;
 		assertEquals(onlineUser, serviceHandler.getNumberOfOnlineUsers());
 	}
 
 	@Test
-	public void test009_delete() throws Exception {
-		serviceHandler = ServiceHandlerImpl.getInstance();
+	public void test011_delete() throws Exception {
+		serviceHandler.initializeSession();
 		serviceHandler.login(testUsername, testPassword);
 		serviceHandler.delete(testPassword);
 	}
 
-	@Test
-	public void test010_disconnect() {
+	@Test(expected = Exception.class)
+	public void test012_deleteWithException() throws Exception
+	{
 		serviceHandler = ServiceHandlerImpl.getInstance();
+		serviceHandler.delete(testPassword+ "salt");
+	}
+	
+	@Test
+	public void test013_disconnect() {
+		serviceHandler.initializeSession();
+		serviceHandler.disconnect();
+	}
+	
+	@Test(expected = Exception.class)
+	public void test014_disconnectWithException() throws Exception
+	{
 		serviceHandler.disconnect();
 	}
 	
