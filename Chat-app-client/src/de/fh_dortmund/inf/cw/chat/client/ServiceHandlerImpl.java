@@ -1,6 +1,5 @@
 package de.fh_dortmund.inf.cw.chat.client;
 
-import java.util.Date;
 import java.util.List;
 
 import javax.jms.ConnectionFactory;
@@ -9,7 +8,6 @@ import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
-import javax.jms.ObjectMessage;
 import javax.jms.Queue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
@@ -23,13 +21,10 @@ import de.fh_dortmund.inf.cw.chat.client.shared.StatisticHandler;
 import de.fh_dortmund.inf.cw.chat.client.shared.UserSessionHandler;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.StatisticManagementRemote;
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserManagementRemote;
-
 import de.fh_dortmund.inf.cw.chat.server.beans.interfaces.UserSessionHandlerRemote;
 import de.fh_dortmund.inf.cw.chat.server.entities.CommonStatistic;
-import de.fh_dortmund.inf.cw.chat.server.entities.User;
 import de.fh_dortmund.inf.cw.chat.server.entities.UserStatistic;
 import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessage;
-import de.fh_dortmund.inf.cw.chat.server.shared.ChatMessageType;
 
 public class ServiceHandlerImpl extends ServiceHandler 
 		implements UserSessionHandler, ChatMessageHandler, MessageListener, StatisticHandler {
@@ -49,6 +44,13 @@ public class ServiceHandlerImpl extends ServiceHandler
 
 	// Singleton Constructor
 	private ServiceHandlerImpl() {
+		initializeSession();
+	}
+	
+	public void initializeSession(){
+		//Für die Tests
+		try {disconnect();} catch (Exception e) {}
+		
 		try {
 			ctx = new InitialContext();
 
@@ -71,6 +73,10 @@ public class ServiceHandlerImpl extends ServiceHandler
 		return instance;
 	}
 	
+	
+	
+	
+	//BEGIN USER SESSION MANAGER
 	@Override
 	public void changePassword(String oldPassword, String newPassword) throws Exception {
 		userSessionHandler.changePassword(oldPassword, newPassword);
@@ -124,7 +130,13 @@ public class ServiceHandlerImpl extends ServiceHandler
 	public void register(String userName, String password) throws Exception {
 		userManagement.register(userName, password);
 	}
-
+	//END USER SESSION MANAGER
+	
+	
+	
+	
+	
+	//BEGIN MESSAGE LISTENER
 	//Chat Message Handler
 	//Hört auf Nachrichten, die von Server gesendet werden.
 	@Override
@@ -144,7 +156,12 @@ public class ServiceHandlerImpl extends ServiceHandler
 			e.printStackTrace();
 		}		
 	}
+	//END MESSAGE LISTENER
 
+	
+	
+	
+	//BEGIN CHAT MESSAGE HANDLER
 	//Sendet übergebene Nachricht an den Server
 	@Override
 	public void sendChatMessage(String message) {
@@ -159,6 +176,9 @@ public class ServiceHandlerImpl extends ServiceHandler
 			e.printStackTrace();
 		}		
 	}
+	//END CHAT MESSAGE HANDLER
+	
+	
 	
 	//initialize JMS Context 
 	private void registerOnConsumer(){
@@ -191,7 +211,7 @@ public class ServiceHandlerImpl extends ServiceHandler
 	//Chat Message Handler Ende
 	
 	
-	//StatisticHandler
+	//BEGIN STATISTIC HANDLER
 	@Override
 	public List<CommonStatistic> getStatistics() {
 		System.out.println(statisticManagement.getCommonStatistic().size());
@@ -204,5 +224,5 @@ public class ServiceHandlerImpl extends ServiceHandler
 		System.out.println(statisticManagement.getUserStatistic(getUserName()));
 		return statisticManagement.getUserStatistic(getUserName());
 	}
-	//StatisticHandler Ende
+	//END STATISTIC HANDLER
 }

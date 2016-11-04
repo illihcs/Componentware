@@ -235,7 +235,19 @@ public class UserManagementBean implements UserManagementLocal, UserManagementRe
 		}
 
 		// remove user out of db
-		entityManager.remove(user);
+		User userDelete = getUserByName(user.getUserName());
+		entityManager.remove(userDelete);
+		
+		// Alle Nutzer benachrichten, dass ein Nutzer gelöscht wurde.
+		ObjectMessage jmsChatMessage = jmsContext.createObjectMessage();
+		try {
+			jmsChatMessage
+					.setObject(new ChatMessage(ChatMessageType.REGISTER, user.getUserName(), "Registered", new Date()));
+		} catch (JMSException e) {
+			e.printStackTrace();
+		}
+		jmsContext.createProducer().send(chatMessageTopic, jmsChatMessage);
+		// Registrierungsbenachrichtigung Ende
 	}
 
 	// helper

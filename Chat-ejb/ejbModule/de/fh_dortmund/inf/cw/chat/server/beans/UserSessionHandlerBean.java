@@ -59,7 +59,7 @@ public class UserSessionHandlerBean implements UserSessionHandlerLocal, UserSess
 	public void delete(String password) {
 		if (user.getPasswordHash().equals(userManagement.generateHash(password))) {
 			userManagement.delete(user);
-			logout();
+			disconnect();
 		}
 	}
 

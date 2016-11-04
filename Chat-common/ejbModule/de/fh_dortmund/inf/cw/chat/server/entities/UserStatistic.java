@@ -4,13 +4,8 @@ import java.util.Date;
 
 import javax.persistence.Basic;
 import javax.persistence.Entity;
-import javax.persistence.NamedQueries;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-
-@NamedQueries({
-	})
-
 
 @Entity
 public class UserStatistic extends Statistic {

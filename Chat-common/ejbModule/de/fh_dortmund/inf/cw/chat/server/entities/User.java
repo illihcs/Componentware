@@ -3,11 +3,9 @@ package de.fh_dortmund.inf.cw.chat.server.entities;
 import java.io.Serializable;
 
 import javax.persistence.Basic;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
@@ -23,12 +21,9 @@ import javax.persistence.Table;
 })
 
 @Entity
-public class User implements Serializable{
+public class User extends BaseEntity implements Serializable{
 	private static final long serialVersionUID = 1L;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private long uuID;
 	@Basic(optional = false)
 	@Column(nullable = false)
 	private String userName;
@@ -36,7 +31,7 @@ public class User implements Serializable{
 	@Column(nullable = false)
 	private String passwordHash;
 	@JoinColumn(nullable=true, name="statistic")
-	@OneToOne
+	@OneToOne(cascade={CascadeType.PERSIST,CascadeType.REMOVE})
 	private UserStatistic statistic;
 	
 //	@Basic(optional = false)
@@ -56,10 +51,6 @@ public class User implements Serializable{
 		//this.online = false;
 	}
 	
-	public long getUUID() {
-		return uuID;
-	}
-
 //	public boolean isOnline() {
 //		return online;
 //	}

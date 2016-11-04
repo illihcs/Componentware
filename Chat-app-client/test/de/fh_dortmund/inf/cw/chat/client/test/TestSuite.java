@@ -7,7 +7,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 
 @RunWith(Suite.class)
-@SuiteClasses({UserSessionHandlerTest.class, UserManagementTest.class, StatisticManagementTest.class})
+@SuiteClasses({UserSessionHandlerTest.class, ChatMessageHandlerTest.class, StatisticHandlerTest.class})
 public class TestSuite {
 
 }
